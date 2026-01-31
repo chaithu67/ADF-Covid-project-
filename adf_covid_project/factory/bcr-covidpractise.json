@@ -1,0 +1,9 @@
+{
+	"name": "bcr-covidpractise",
+	"location": "centralindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "d5208845-361b-4fb0-9dce-ba93f7de823e",
+		"tenantId": "7a32c68c-ea8a-47f7-ad84-650e024e3c98"
+	}
+}

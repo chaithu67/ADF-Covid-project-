@@ -1,0 +1,27 @@
+{
+	"name": "df_ds_dummy",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls_bcrcoviddl",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "processed"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "casesanddeaths/pivot",
+				"fileSystem": "dummyprocessed"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

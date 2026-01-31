@@ -1,0 +1,171 @@
+{
+	"name": "df_casesanddeaths_transformed",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "df_ds_casesanddeaths",
+						"type": "DatasetReference"
+					},
+					"name": "CasesanddeathsSource"
+				},
+				{
+					"dataset": {
+						"referenceName": "df_ds_look_countrycode",
+						"type": "DatasetReference"
+					},
+					"name": "sourceCountryCode"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "df_ds_processed_casesanddeaths",
+						"type": "DatasetReference"
+					},
+					"name": "sinkCasesanddeaths",
+					"rejectedDataLinkedService": {
+						"referenceName": "ls_adls_bcrcoviddl",
+						"type": "LinkedServiceReference"
+					}
+				},
+				{
+					"dataset": {
+						"referenceName": "df_ds_dummy",
+						"type": "DatasetReference"
+					},
+					"name": "sinkdummy",
+					"rejectedDataLinkedService": {
+						"referenceName": "ls_adls_bcrcoviddl",
+						"type": "LinkedServiceReference"
+					}
+				}
+			],
+			"transformations": [
+				{
+					"name": "filterEuqropeOnly"
+				},
+				{
+					"name": "selectOnlyrequiredFileds"
+				},
+				{
+					"name": "pivotCounts"
+				},
+				{
+					"name": "lookupCountrycode"
+				},
+				{
+					"name": "selectCountryCode"
+				},
+				{
+					"name": "selectForSink"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          dateRep as string,",
+				"          day as short,",
+				"          month as short,",
+				"          year as short,",
+				"          cases as integer,",
+				"          deaths as short,",
+				"          countriesAndTerritories as string,",
+				"          geoId as string,",
+				"          countryterritoryCode as string,",
+				"          popData2020 as integer,",
+				"          continentExp as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> CasesanddeathsSource",
+				"source(output(",
+				"          dateRep as string,",
+				"          day as short,",
+				"          month as short,",
+				"          year as short,",
+				"          cases as integer,",
+				"          deaths as short,",
+				"          countriesAndTerritories as string,",
+				"          geoId as string,",
+				"          countryterritoryCode as string,",
+				"          popData2020 as integer,",
+				"          continentExp as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> sourceCountryCode",
+				"CasesanddeathsSource filter(continentExp == 'Europe') ~> filterEuqropeOnly",
+				"filterEuqropeOnly select(mapColumn(",
+				"          Continent = continentExp,",
+				"          Country = countriesAndTerritories,",
+				"          Population = popData2020,",
+				"          Cases_Reported = cases,",
+				"          Deaths_Reported = deaths,",
+				"          Date_Reported = dateRep",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectOnlyrequiredFileds",
+				"selectOnlyrequiredFileds pivot(groupBy(Continent,",
+				"          Country,",
+				"          Population),",
+				"     pivotBy(Date_Reported),",
+				"     CountCases = sum(Cases_Reported),",
+				"          deathscount = sum(Deaths_Reported),",
+				"     columnNaming: '$V_$N',",
+				"     lateral: true) ~> pivotCounts",
+				"selectOnlyrequiredFileds, selectCountryCode lookup(Country == countriesAndTerritories,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookupCountrycode",
+				"sourceCountryCode select(mapColumn(",
+				"          continentExp,",
+				"          countriesAndTerritories,",
+				"          geoId,",
+				"          countryterritoryCode",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectCountryCode",
+				"lookupCountrycode select(mapColumn(",
+				"          Continent,",
+				"          Country,",
+				"          geoId,",
+				"          countryterritoryCode,",
+				"          Population,",
+				"          Cases_Reported,",
+				"          Deaths_Reported,",
+				"          Date_Reported",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectForSink",
+				"selectForSink sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['Casesanddeaths'],",
+				"     truncate: true,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     outputAssertFailedRows: true,",
+				"     assertFailure_fileSystem: 'raw',",
+				"     assertFailure_folderPath: 'errors',",
+				"     partitionBy('hash', 1)) ~> sinkCasesanddeaths",
+				"pivotCounts sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['dummy'],",
+				"     truncate: true,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     outputAssertFailedRows: true,",
+				"     assertFailure_fileSystem: 'raw',",
+				"     assertFailure_folderPath: 'errors',",
+				"     partitionBy('hash', 1)) ~> sinkdummy"
+			]
+		}
+	}
+}
